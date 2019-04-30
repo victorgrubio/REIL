@@ -1,0 +1,3 @@
+function output = e_greedy(v_input,r,N_actions)
+...
+
