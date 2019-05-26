@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 class problem_6():
     def __init__(self):
@@ -93,38 +94,46 @@ class problem_6():
             for ac in range(self.N_actions):
                 feat = np.zeros(self.N_actions * self.N_features)  # N_actions x n_features
                 if ac == 0:
-                    feat[0:self.N_features] = # Complete this line
+                    feat[0:self.N_features] = self.obtain_features(self.states[si]) # Complete this line
                 else:
-                    feat[self.N_features:] = # Complete this line
-                self.phi_q[i, :] = # Complete this line
+                    feat[self.N_features:] = self.obtain_features(self.states[si]) # Complete this line
+                self.phi_q[i, :] = feat # Complete this line
                 i += 1
                 print('Features for state ', self.states[si], ' - action ' + self.actions_name[ac] + '= ', feat)
         print('P 4 solutions: the matrix is ')
         print(self.phi_q)
 
-    def bellman_linear(N_states, N_actions, gamma, policy, P, R): # TO BE FINISHED BY STUDENTS
-        v = # Complete this line
-        q = # Complete this line
-    return v, q
+    def bellman_linear(self,N_states, N_actions, gamma, policy, P, R): # TO BE FINISHED BY STUDENTS
+        dim_eye_v = policy.shape[0]
+        dim_eye_q = P.shape[0]
+        v = np.dot(np.linalg.inv(np.identity(dim_eye_v)-gamma*np.dot(policy,P)),(np.dot(policy,R)));
+        q = np.dot(np.linalg.inv(np.identity(dim_eye_q)-gamma*np.dot(P,policy)),R);
+        return v, q
 
     def obtain_features(self, state, sigma=4): # TO BE FINISHED BY STUDENTS
         features = np.zeros(2)
-        features[0] = # Complete this line
-        features[1] = # Complete this line
+        exp1 = -((state - 2)**2)/(2*sigma**2)
+        exp2 = -((state - 3)**2)/(2*sigma**2)
+        features[0] = (1/np.sqrt(2*np.pi*(sigma**2)))*np.exp(exp1)# Complete this line
+        features[1] = (1/np.sqrt(2*np.pi*(sigma**2)))*np.exp(exp2)# Complete this line
         return features
 
     def solve_ex_2(self): # TO BE FINISHED BY STUDENTS
         print ('Solution to the problem 6.2')
+        pi_p_rp = np.dot(self.P, self.pi_rp)
+        pi_p_opt = np.dot(self.P, self.pi_opt)
         # Obtain the BPE solutions: we find the matrices and then, obtain the results for the parameters
-        G_rp = # Complete this line
-        L_rp = # Complete this line
-        z_rp = # Complete this line
-        G_opt = # Complete this line
-        L_opt = # Complete this line
-        z_opt = # Complete this line
+        G_rp = np.dot(np.dot(self.phi_q.T, self.D_q_rp), self.phi_q) # Complete this line
+        L_rp = np.dot(np.dot(np.dot(self.phi_q.T, self.D_q_rp), pi_p_rp),
+                      self.phi_q) # Complete this line
+        z_rp = np.dot(np.dot(self.phi_q.T, self.D_q_rp), self.R) # Complete this line
+        G_opt = np.dot(np.dot(self.phi_q.T, self.D_q_op), self.phi_q)# Complete this line
+        L_opt = np.dot(np.dot(np.dot(self.phi_q.T, self.D_q_op), pi_p_opt),
+                      self.phi_q) # Complete this line
+        z_opt = np.dot(np.dot(self.phi_q.T, self.D_q_op), self.R) # Complete this line
 
-        theta_rp = # Complete this line
-        theta_opt = # Complete this line
+        theta_rp = np.dot(np.linalg.inv(G_rp - self.gamma*L_rp), z_rp) # Complete this line
+        theta_opt = np.dot(np.linalg.inv(G_opt - self.gamma*L_opt), z_opt) # Complete this line
         self.q_rp_approx = self.phi_q @ theta_rp
         print('Random policy Q = ', self.q_rp.reshape([self.N_states * self.N_actions]),
               '; Approximated random policy Q = ', self.q_rp_approx.reshape([self.N_states * self.N_actions]),
@@ -134,31 +143,20 @@ class problem_6():
               '; Approximated optimal policy Q = ', self.q_op_approx.reshape([self.N_states * self.N_actions]),
               'parameters = ', theta_opt.reshape([self.N_actions * self.N_features]))
 
-
     def solve_ex_3(self): # TO BE FINISHED BY STUDENTS
         print ('Solution to the problem 6.3')
         Niter = 500000
 
-        # LSTD estimation of the random policy
-        est_G = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
-        est_L = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
-        est_z = np.zeros([self.N_actions * self.N_features, 1])
-
         # Implement LSTD algorithm in order to obtain the following vector:
-        theta_est_rp = # Complete this line
+        theta_est_rp = self.lstd(Niter, mode='rp')# Complete this line
 
         self.q_est_rp_approx = self.phi_q @ theta_est_rp
         print('Random policy Q = ', self.q_rp.reshape([self.N_states * self.N_actions]),
               '; LSTD random policy Q = ', self.q_est_rp_approx.reshape([self.N_states * self.N_actions]),
               'parameters = ', theta_est_rp.reshape([self.N_actions * self.N_features]))
 
-        # LSTD estimation of the optimal policy
-        est_G = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
-        est_L = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
-        est_z = np.zeros([self.N_actions * self.N_features, 1])
-
         # Implement LSTD algorithm in order to obtain the following vector:
-        theta_est_opt =  # Complete this line
+        theta_est_opt =  self.lstd(Niter, mode='op')# Complete this line
 
         self.q_est_op_approx = self.phi_q @ theta_est_opt
         print('Optimal policy Q = ', self.q_op.reshape([self.N_states * self.N_actions]),
@@ -176,6 +174,70 @@ class problem_6():
         plt.ylabel('Q-function')
         plt.title('Comparative: Block solution')
         plt.show()
+
+    def lstd(self, Niter=1000, mode='op'):
+        # LSTD estimation of the optimal policy
+        est_G = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
+        est_L = np.zeros([self.N_actions * self.N_features, self.N_actions * self.N_features])
+        est_z = np.zeros([self.N_actions * self.N_features, 1])
+        prob = 0.5
+        for episode in range(0, Niter):
+            pass
+            u = random()
+            s = np.zeros(100,1)  # Buffer large enough
+            s[0] = 1
+            action = 0
+            terminal_flag = 0
+            cont=0
+            action = 0
+            if mode == 'op':
+                pi_matrix = self.pi_op
+            elif mode == 'rq':
+                pi_matrix = self.pi_rq
+            while terminal_flag==0:
+                if u<prob:
+                    action = 0  # left
+                else:
+                    action = 1  # right
+                action_decisor = random()
+                if action == 1:
+                    if action_decisor > 0.9:
+                        s[cont] = s[cont-1] + 1
+                    else:
+                        if s[cont-1] == 1:
+                            s[cont] = s[cont-1]
+                        else:
+                            s[cont] = s[cont-1] - 1
+                elif action == 0:
+                    if action_decisor > 0.9:
+                        if s[cont-1] == 4:
+                            s[cont] = s[cont-1]
+                        else:
+                            s[cont] = s[cont-1] + 1
+                    else:
+                        if s[cont-1] == 1:
+                            s[cont] = s[cont-1]
+                        else:
+                            s[cont] = s[cont-1] - 1
+                r = 1 if s[cont] in [2,3] else 0
+                cont=cont+1
+                u=random()
+                if u<prob:
+                    s[cont]= s[cont-1] + 1  # action obtains next state
+                else:
+                    s[cont]= s[cont-1] - 1  # action obtains next state
+            if s[cont]==1:
+                terminal_flag = 1
+#                R = 0
+#            if s[cont]==7:
+#                R = 1
+#                terminal_flag = 1
+#            pass
+#            s[cont-1] = s[cont];
+#        if episode < Niter:
+#            pass
+        w = 1;
+        return w
 
     def solve_ex_4(self): # TO BE FINISHED BY STUDENTS
         # Solve the problem using online LSPI
@@ -200,7 +262,7 @@ class problem_6():
         est_z = np.zeros([self.N_actions * self.N_features, 1])
 
         # Implement LSPI algorithm in order to obtain the following vector:
-        theta_est =  # Complete this line with the final feature vector
+        theta_est =  1# Complete this line with the final feature vector
 
         q_opt_ite = self.phi_q @ theta_est  # Q evolution
 
@@ -219,10 +281,11 @@ class problem_6():
         plt.show()
 
 if __name__ == '__main__':
-    # Note that each problem depends on the previous ones! You should run them all to avoid errors
+    # Note that each problem depends on the previous ones!
+    # You should run them all to avoid errors
     c = problem_6()  # Initialize parameters
     c.solve_ex_1()  # Solves problem 6.1
     c.solve_ex_2()  # Solves problem 6.2
     c.solve_ex_3()  # Solves problem 6.3
-    c.solve_ex_4()  # Solves problem 6.4
+#    c.solve_ex_4()  # Solves problem 6.4
 

@@ -7,10 +7,10 @@ N_epi=20000;
 v_rp=inv(eye(R_W.N_states)-R_W.gamma*R_W.pi_rp*R_W.P)*R_W.pi_rp*R_W.R;
 
 % MC solution in exercise 5.1
-exercise_5_1
+v_mc = montecarlo(N_epi, R_W, gamma);
 
 % TD algorithm in script TD_R_W (only works for the random policy)
-[v_td] = TD_R_W(R_W,N_epi);
+v_td = TD_R_W(R_W,N_epi);
 
 % We plot the results
 aux=repmat(v_rp,[1 N_epi])-v_mc(:,1:N_epi);
